@@ -61,6 +61,7 @@ public class UserVisitSessionAnalyzeSpark {
         SparkConf conf = new SparkConf()
                 .setAppName(Constants.SPARK_APP_NAME_SESSION)
                 .setMaster("local")
+//                .set("spark.default.parallelism","100")
                 .set("spark.storage.memoryFraction", "0.5")// 降低cache操作的内存占比(默认0.6)，从而减少JVM的minor gc和full gc操作
                 .set("spark.shuffle.consolidateFiles", "true")// shuffle调优，设置合并map端输出文件
                 .set("spark.shuffle.file.buffer", "64")// 调节map task内存缓冲(默认32k)
@@ -269,6 +270,14 @@ public class UserVisitSessionAnalyzeSpark {
                 "where date >= '" + startDate + "' " +
                 "and date <= '" + endDate + "'";
         DataFrame actionDF = sqlContext.sql(sql);
+        /**
+         * 解决SparkSQL无法设置并行度和task数量的方法：
+         * 使用repartition算子进行重分区。
+         * 比如说：SparkSQL默认就给第一个stage设置了20个task，但是根据你的数据量以及算法的复杂度
+         * 实际上，你需要1000个task去并行执行
+         * 所以说，在这里，可以对SparkSQL查询出来的RDD执行repartition重分区操作
+         */
+//        actionDF.javaRDD().repartition(1000);
         return actionDF.javaRDD();
     }
 
