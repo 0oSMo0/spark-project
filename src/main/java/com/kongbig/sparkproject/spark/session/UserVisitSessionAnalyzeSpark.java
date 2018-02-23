@@ -279,12 +279,25 @@ public class UserVisitSessionAnalyzeSpark {
      * @return
      */
     public static JavaPairRDD<String, Row> getSessionId2ActionRDD(JavaRDD<Row> actionRDD) {
-        return actionRDD.mapToPair(new PairFunction<Row, String, Row>() {
-            private static final long serialVersionUID = 4730678416559888130L;
-
+//        return actionRDD.mapToPair(new PairFunction<Row, String, Row>() {
+//            private static final long serialVersionUID = 4730678416559888130L;
+//
+//            @Override
+//            public Tuple2<String, Row> call(Row row) throws Exception {
+//                return new Tuple2<String, Row>(row.getString(2), row);
+//            }
+//        });
+        return actionRDD.mapPartitionsToPair(new PairFlatMapFunction<Iterator<Row>, String, Row>() {
             @Override
-            public Tuple2<String, Row> call(Row row) throws Exception {
-                return new Tuple2<String, Row>(row.getString(2), row);
+            public Iterable<Tuple2<String, Row>> call(Iterator<Row> iterator) throws Exception {
+                // 传进来的iterator包含一个分区的所有数据
+                List<Tuple2<String, Row>> list = new ArrayList<Tuple2<String, Row>>();
+                while (iterator.hasNext()) {
+                    Row row = iterator.next();
+                    // <sessionId, row>
+                    list.add(new Tuple2<String, Row>(row.getString(2), row));
+                }
+                return list;
             }
         });
     }
