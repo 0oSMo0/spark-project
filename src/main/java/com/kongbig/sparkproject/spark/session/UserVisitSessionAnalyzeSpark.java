@@ -867,27 +867,53 @@ public class UserVisitSessionAnalyzeSpark {
          */
         JavaPairRDD<String, Tuple2<String, Row>> extractSessionDetailRDD =
                 extractSessionIdsRDD.join(sessionId2ActionRDD);
-        extractSessionDetailRDD.foreach(new VoidFunction<Tuple2<String, Tuple2<String, Row>>>() {
-            private static final long serialVersionUID = -1851055547113281924L;
-
+//        extractSessionDetailRDD.foreach(new VoidFunction<Tuple2<String, Tuple2<String, Row>>>() {
+//            private static final long serialVersionUID = -1851055547113281924L;
+//
+//            @Override
+//            public void call(Tuple2<String, Tuple2<String, Row>> tuple) throws Exception {
+//                Row row = tuple._2._2;
+//                SessionDetail sessionDetail = new SessionDetail();
+//                sessionDetail.setTaskId(taskId);
+//                sessionDetail.setUserId(row.getLong(1));
+//                sessionDetail.setSessionId(row.getString(2));
+//                sessionDetail.setPageId(row.getLong(3));
+//                sessionDetail.setActionTime(row.getString(4));
+//                sessionDetail.setSearchKeyword(row.getString(5));
+//                sessionDetail.setClickCategoryId(row.getLong(6));
+//                sessionDetail.setClickProductId(row.getLong(7));
+//                sessionDetail.setOrderCategoryIds(row.getString(8));
+//                sessionDetail.setOrderProductIds(row.getString(9));
+//                sessionDetail.setPayCategoryIds(row.getString(10));
+//                sessionDetail.setPayProductIds(row.getString(11));
+//                ISessionDetailDAO sessionDetailDAO = DAOFactory.getSessionDetailDAO();
+//                sessionDetailDAO.insert(sessionDetail);
+//            }
+//        });
+        extractSessionDetailRDD.foreachPartition(new VoidFunction<Iterator<Tuple2<String, Tuple2<String, Row>>>>() {
             @Override
-            public void call(Tuple2<String, Tuple2<String, Row>> tuple) throws Exception {
-                Row row = tuple._2._2;
-                SessionDetail sessionDetail = new SessionDetail();
-                sessionDetail.setTaskId(taskId);
-                sessionDetail.setUserId(row.getLong(1));
-                sessionDetail.setSessionId(row.getString(2));
-                sessionDetail.setPageId(row.getLong(3));
-                sessionDetail.setActionTime(row.getString(4));
-                sessionDetail.setSearchKeyword(row.getString(5));
-                sessionDetail.setClickCategoryId(row.getLong(6));
-                sessionDetail.setClickProductId(row.getLong(7));
-                sessionDetail.setOrderCategoryIds(row.getString(8));
-                sessionDetail.setOrderProductIds(row.getString(9));
-                sessionDetail.setPayCategoryIds(row.getString(10));
-                sessionDetail.setPayProductIds(row.getString(11));
+            public void call(Iterator<Tuple2<String, Tuple2<String, Row>>> iterator) throws Exception {
+                List<SessionDetail> sessionDetails = new ArrayList<SessionDetail>();
+                while (iterator.hasNext()) {
+                    Tuple2<String, Tuple2<String, Row>> tuple = iterator.next();
+                    Row row = tuple._2._2;
+                    SessionDetail sessionDetail = new SessionDetail();
+                    sessionDetail.setTaskId(taskId);
+                    sessionDetail.setUserId(row.getLong(1));
+                    sessionDetail.setSessionId(row.getString(2));
+                    sessionDetail.setPageId(row.getLong(3));
+                    sessionDetail.setActionTime(row.getString(4));
+                    sessionDetail.setSearchKeyword(row.getString(5));
+                    sessionDetail.setClickCategoryId(row.getLong(6));
+                    sessionDetail.setClickProductId(row.getLong(7));
+                    sessionDetail.setOrderCategoryIds(row.getString(8));
+                    sessionDetail.setOrderProductIds(row.getString(9));
+                    sessionDetail.setPayCategoryIds(row.getString(10));
+                    sessionDetail.setPayProductIds(row.getString(11));
+                    sessionDetails.add(sessionDetail);
+                }
                 ISessionDetailDAO sessionDetailDAO = DAOFactory.getSessionDetailDAO();
-                sessionDetailDAO.insert(sessionDetail);
+                sessionDetailDAO.insertBatch(sessionDetails);
             }
         });
     }
