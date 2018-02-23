@@ -1135,6 +1135,16 @@ public class UserVisitSessionAnalyzeSpark {
      */
     private static JavaPairRDD<Long, Long> getClickCategoryId2CountRDD(
             JavaPairRDD<String, Row> sessionId2DetailRDD) {
+        /**
+         * 说明：
+         * 这里是对完整的数据进行了filter过滤，过滤出来点击行为的数据
+         * 点击行为的数据其实只占总数据的一小部分
+         * 所以过滤以后的RDD，每个partition的数据量，很可能会很不均匀
+         * 而且数据量肯定会变少很多
+         *
+         * 所以针对这种情况，还是比较适合使用coalesce算子，在filter过滤后减少partition的数量
+         */
+
         JavaPairRDD<String, Row> clickActionRDD = sessionId2DetailRDD.filter(
                 new Function<Tuple2<String, Row>, Boolean>() {
                     private static final long serialVersionUID = 825623610632401786L;
@@ -1145,6 +1155,14 @@ public class UserVisitSessionAnalyzeSpark {
                         return row.get(6) != null;
                     }
                 });
+//        .coalesce(100);// 过滤后将分区数量压缩到100
+        /**
+         * coalesce说明：
+         * 在这里用的模式都是local模式，主要是用来测试，所以local模式下，不用去设置分区和并行度的数量
+         * local模式自己本身就是进程内模式的集群来执行，本身性能就很高
+         * 而且对并行度、partition刷另都有一定的内部的优化
+         * 因此，这里无需再设置，知道使用即可。
+         */
 
         JavaPairRDD<Long, Long> clickCategoryIdRDD = clickActionRDD.mapToPair(
                 new PairFunction<Tuple2<String, Row>, Long, Long>() {
