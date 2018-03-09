@@ -67,6 +67,8 @@ public class UserVisitSessionAnalyzeSpark {
                 .set("spark.shuffle.file.buffer", "64")// 调节map task内存缓冲(默认32k)
                 .set("spark.shuffle.memoryFraction", "0.3")// 调节reduce端聚合内存占比(默认0.2)
                 .set("spark.reducer.maxSizeInFlight", "24")// 调节shuffle时reduce端缓冲大小(默认48M)
+                .set("spark.shuffle.io.maxRetries", "60")// shuffle文件拉取的时候，如果没有拉取到，最多或重试几次，默认是3次
+                .set("spark.shuffle.io.retryWait", "60")// 每一次重试拉取文件的时间间隔，默认是5s
                 .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
                 .registerKryoClasses(new Class[]{
                         CategorySortKey.class,
