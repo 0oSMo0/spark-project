@@ -80,6 +80,7 @@ public class UserVisitSessionAnalyzeSpark {
          * 所以这里要求，为了获取最佳心能，注册一下我们自定义的类
          */
         JavaSparkContext sc = new JavaSparkContext(conf);
+        // sc.checkpointFile("hdfs://");
         SQLContext sqlContext = getSQLContext(sc.sc());// 从JavaSparkContext取出对应的SparkContext
 
         // 生成模拟测试数据
@@ -118,6 +119,7 @@ public class UserVisitSessionAnalyzeSpark {
          * （这里默认用持久化到内存一份就够->纯内存）
          */
         sessionId2ActionRDD = sessionId2ActionRDD.persist(StorageLevel.MEMORY_ONLY());
+        // sessionId2ActionRDD.checkpoint();
         /**
          * 持久化：
          * persist(StorageLevel.MEMORY_ONLY())，为纯内存，可以用cache()方法替代
