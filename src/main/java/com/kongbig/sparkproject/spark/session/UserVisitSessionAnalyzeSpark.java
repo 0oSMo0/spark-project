@@ -1215,6 +1215,10 @@ public class UserVisitSessionAnalyzeSpark {
                     }
                 });
 
+        /**
+         * 计算各个品类的点击次数
+         * 如果某个品类点击了1000万次，其他品类都是10万次，那么也会数据倾斜
+         */
         JavaPairRDD<Long, Long> clickCategoryId2CountRDD = clickCategoryIdRDD.reduceByKey(
                 new Function2<Long, Long, Long>() {
                     private static final long serialVersionUID = -313368598553346927L;
@@ -1224,6 +1228,19 @@ public class UserVisitSessionAnalyzeSpark {
                         return v1 + v2;
                     }
                 });
+        /**
+         * 提升shuffle reduce端并行度
+         */
+//        JavaPairRDD<Long, Long> clickCategoryId2CountRDD = clickCategoryIdRDD.reduceByKey(
+//                new Function2<Long, Long, Long>() {
+//                    private static final long serialVersionUID = -313368598553346927L;
+//
+//                    @Override
+//                    public Long call(Long v1, Long v2) throws Exception {
+//                        return v1 + v2;
+//                    }
+//                }, 
+//                1000);
         return clickCategoryId2CountRDD;
     }
 
