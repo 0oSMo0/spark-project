@@ -1241,6 +1241,51 @@ public class UserVisitSessionAnalyzeSpark {
 //                    }
 //                }, 
 //                1000);
+        
+//        /**
+//         * 使用随机key实现双重聚合
+//         * 第1步，给每个key打上一个随机数
+//         */
+//        JavaPairRDD<String, Long> mappedClickCategoryIdRDD = clickCategoryIdRDD.mapToPair(new PairFunction<Tuple2<Long, Long>, String, Long>() {
+//            @Override
+//            public Tuple2<String, Long> call(Tuple2<Long, Long> tuple) throws Exception {
+//                Random random = new Random();
+//                int prefix = random.nextInt(10);
+//                // tuple._2就是1L
+//                return new Tuple2<String, Long>(prefix + "_" + tuple._1, tuple._2);
+//            }
+//        });
+//        /**
+//         * 使用随机key实现双重聚合
+//         * 第2步，执行第一轮局部聚合
+//         */
+//        JavaPairRDD<String, Long> firstAggrRDD = mappedClickCategoryIdRDD.reduceByKey(new Function2<Long, Long, Long>() {
+//            @Override
+//            public Long call(Long v1, Long v2) throws Exception {
+//                return v1 + v2;
+//            }
+//        });
+//        /**
+//         * 使用随机key实现双重聚合
+//         * 第3步，去除掉每个key的前缀（还原后的RDD，key为原来的clickCategoryId）
+//         */
+//        JavaPairRDD<Long, Long> restoredRDD = firstAggrRDD.mapToPair(new PairFunction<Tuple2<String, Long>, Long, Long>() {
+//            @Override
+//            public Tuple2<Long, Long> call(Tuple2<String, Long> tuple) throws Exception {
+//                long categoryId = Long.valueOf(tuple._1.split("_")[1]);
+//                return new Tuple2<Long, Long>(categoryId, tuple._2);
+//            }
+//        });
+//        /**
+//         * 使用随机key实现双重聚合
+//         * 第4步，做第二轮全局的聚合
+//         */
+//        JavaPairRDD<Long, Long> globalAggrRDD = restoredRDD.reduceByKey(new Function2<Long, Long, Long>() {
+//            @Override
+//            public Long call(Long v1, Long v2) throws Exception {
+//                return v1 + v2;
+//            }
+//        });
         return clickCategoryId2CountRDD;
     }
 
