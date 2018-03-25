@@ -521,6 +521,116 @@ public class UserVisitSessionAnalyzeSpark {
 //            }
 //        });
 
+        /**
+         * 数据倾斜解决方案之sample采样倾斜key进行两次join
+         * （即join两边RDD的数据都有可能产生数据倾斜的情况）
+         */
+//        JavaPairRDD<Long, String> sampleRDD = userId2PartAggrInfoRDD.sample(false, 0.1, 9);
+//        JavaPairRDD<Long, Long> mappedSampledRDD = sampleRDD.mapToPair(new PairFunction<Tuple2<Long, String>, Long, Long>() {
+//            @Override
+//            public Tuple2<Long, Long> call(Tuple2<Long, String> tuple) throws Exception {
+//                return new Tuple2<Long, Long>(tuple._1, 1L);
+//            }
+//        });
+//        // <userId, 次数>
+//        JavaPairRDD<Long, Long> computedSampledRDD = mappedSampledRDD.reduceByKey(new Function2<Long, Long, Long>() {
+//            @Override
+//            public Long call(Long v1, Long v2) throws Exception {
+//                return v1 + v2;
+//            }
+//        });
+//        JavaPairRDD<Long, Long> reversedSampledRDD = computedSampledRDD.mapToPair(new PairFunction<Tuple2<Long, Long>, Long, Long>() {
+//            @Override
+//            public Tuple2<Long, Long> call(Tuple2<Long, Long> tuple) throws Exception {
+//                // 反转key和value
+//                return new Tuple2<Long, Long>(tuple._2, tuple._1);
+//            }
+//        });
+//        // 降序排序，拿到次数最多的tuple，再拿到userId(最可能产生数据倾斜的userId)
+//        final Long skewedUserId = reversedSampledRDD.sortByKey(false).take(1).get(0)._2;
+//        // (1)产生数据倾斜的RDD
+//        JavaPairRDD<Long, String> skewedRDD = userId2PartAggrInfoRDD.filter(new Function<Tuple2<Long, String>, Boolean>() {
+//            @Override
+//            public Boolean call(Tuple2<Long, String> tuple) throws Exception {
+//                return tuple._1.equals(skewedUserId);
+//            }
+//        });
+//        // (2)普通的RDD
+//        JavaPairRDD<Long, String> commonRDD = userId2PartAggrInfoRDD.filter(new Function<Tuple2<Long, String>, Boolean>() {
+//            @Override
+//            public Boolean call(Tuple2<Long, String> tuple) throws Exception {
+//                return !tuple._1.equals(skewedUserId);
+//            }
+//        });
+//
+//        JavaPairRDD<String, Row> skewedUserId2InfoRDD = userId2InfoRDD.filter(new Function<Tuple2<Long, Row>, Boolean>() {
+//            @Override
+//            public Boolean call(Tuple2<Long, Row> tuple) throws Exception {
+//                return tuple._1.equals(skewedUserId);
+//            }
+//        }).flatMapToPair(new PairFlatMapFunction<Tuple2<Long, Row>, String, Row>() {
+//            @Override
+//            public Iterable<Tuple2<String, Row>> call(Tuple2<Long, Row> tuple) throws Exception {
+//                Random random = new Random();
+//                List<Tuple2<String, Row>> list = new ArrayList<Tuple2<String, Row>>();
+//                for (int i = 0; i < 100; i++) {
+//                    int prefix = random.nextInt(100);
+//                    // 用数字前缀打散
+//                    list.add(new Tuple2<String, Row>(prefix + "_" + tuple._1, tuple._2));
+//                }
+//                return list;
+//            }
+//        });
+//
+//        // 分别与<userId, 用户信息>进行join
+//        JavaPairRDD<Long, Tuple2<String, Row>> joinedRDD1 = skewedRDD.mapToPair(
+//                new PairFunction<Tuple2<Long, String>, String, String>() {
+//                    @Override
+//                    public Tuple2<String, String> call(Tuple2<Long, String> tuple) throws Exception {
+//                        Random random = new Random();
+//                        int prefix = random.nextInt(100);
+//                        return new Tuple2<String, String>(prefix + "_" + tuple._1, tuple._2);
+//                    }
+//                }).join(skewedUserId2InfoRDD)
+//                .mapToPair(new PairFunction<Tuple2<String, Tuple2<String, Row>>, Long, Tuple2<String, Row>>() {
+//                    @Override
+//                    public Tuple2<Long, Tuple2<String, Row>> call(
+//                            Tuple2<String, Tuple2<String, Row>> tuple) throws Exception {
+//                        long userId = Long.valueOf(tuple._1.split("_")[1]);
+//                        return new Tuple2<Long, Tuple2<String, Row>>(userId, tuple._2);
+//                    }
+//                });
+//
+//        JavaPairRDD<Long, Tuple2<String, Row>> joinedRDD2 = commonRDD.join(userId2InfoRDD);
+//        // 合并
+//        JavaPairRDD<Long, Tuple2<String, Row>> joinedRDD = joinedRDD1.union(joinedRDD2);
+//        JavaPairRDD<String, String> finalRDD = joinedRDD.mapToPair(
+//                new PairFunction<Tuple2<Long, Tuple2<String, Row>>, String, String>() {
+//                    private static final long serialVersionUID = 5380181045404411060L;
+//
+//                    @Override
+//                    public Tuple2<String, String> call(Tuple2<Long, Tuple2<String, Row>> tuple) throws Exception {
+//                        String partAggrInfo = tuple._2._1;// 是拼接好的
+//                        Row userInfoRow = tuple._2._2;
+//
+//                        String sessionId = CustomStringUtils.getFieldFromConcatString(partAggrInfo, "\\|", Constants.FIELD_SESSION_ID);
+//
+//                        int age = userInfoRow.getInt(3);
+//                        String professional = userInfoRow.getString(4);
+//                        String city = userInfoRow.getString(5);
+//                        String sex = userInfoRow.getString(6);
+//
+//                        String fullAggrInfo = partAggrInfo + "|"
+//                                + Constants.FIELD_AGE + "=" + age + "|"
+//                                + Constants.FIELD_PROFESSIONAL + "=" + professional + "|"
+//                                + Constants.FIELD_CITY + "=" + city + "|"
+//                                + Constants.FIELD_SEX + "=" + sex;
+//
+//                        return new Tuple2<String, String>(sessionId, fullAggrInfo);
+//                    }
+//                }
+//        );
+
         return sessionId2FullAggrInfoRDD;
     }
 
