@@ -138,7 +138,7 @@ public class UserVisitSessionAnalyzeSpark {
          * 然后，可以将session粒度的数据与用户信息数据，进行join，就获取到session粒度的数据（包含session对应的user的信息）
          */
         // <sessionId, (sessionId,searchKeywords,clickCategoryIds,age,professinal,city,sex)>
-        JavaPairRDD<String, String> sessionId2AggrInfoRDD = aggregateBySession(sqlContext, sessionId2ActionRDD);
+        JavaPairRDD<String, String> sessionId2AggrInfoRDD = aggregateBySession(sc, sqlContext, sessionId2ActionRDD);
 
         /**
          * 针对session粒度的聚合数据，按照使用者指定的筛选参数进行数据过滤。
@@ -324,7 +324,9 @@ public class UserVisitSessionAnalyzeSpark {
      * @return session粒度聚合数据
      */
     private static JavaPairRDD<String, String> aggregateBySession(
-            SQLContext sqlContext, final JavaPairRDD<String, Row> sessionId2ActionRDD) {
+            JavaSparkContext sc,
+            SQLContext sqlContext,
+            final JavaPairRDD<String, Row> sessionId2ActionRDD) {
         // 对行为数据按session粒度进行分组
         // key是sessionId，即按sessionId进行了分组
         JavaPairRDD<String, Iterable<Row>> sessionId2ActionsRDD
@@ -444,6 +446,12 @@ public class UserVisitSessionAnalyzeSpark {
                         return new Tuple2<Long, Row>(row.getLong(0), row);
                     }
                 });
+
+        /**
+         * 这里比较适合采用reduce join转换为map join的方式
+         * userId2PartAggrInfoRDD，可能数据量比较大，比如，可能有1千万数据
+         * userId2InfoRDD，可能数据量比较小的，你的用户数量才10万用户
+         */
         // 将session粒度聚合数据，与用户信息进行join
         // 即<userId, session部分聚合信息> join <userId, 用户信息>
         JavaPairRDD<Long, Tuple2<String, Row>> userId2FullInfoRDD
@@ -476,6 +484,43 @@ public class UserVisitSessionAnalyzeSpark {
                     }
                 }
         );
+
+        /**
+         * 数据倾斜解决方案之将reduce join转换为map join
+         */
+//        List<Tuple2<Long, Row>> userInfos = userId2InfoRDD.collect();
+//        final Broadcast<List<Tuple2<Long, Row>>> userInfosBroadcast = sc.broadcast(userInfos);
+//        // tunedRDD调优后的RDD
+//        JavaPairRDD<String, String> tunedRDD = userId2PartAggrInfoRDD.mapToPair(new PairFunction<Tuple2<Long, String>, String, String>() {
+//            @Override
+//            public Tuple2<String, String> call(Tuple2<Long, String> tuple) throws Exception {
+//                List<Tuple2<Long, Row>> userInfos = userInfosBroadcast.value();
+//                // 得到用户信息的map
+//                Map<Long, Row> userInfoMap = new HashMap<Long, Row>();
+//                for (Tuple2<Long, Row> userInfo : userInfos) {
+//                    userInfoMap.put(userInfo._1, userInfo._2);
+//                }
+//
+//                // 获取到当前用户对应的信息
+//                String partAggrInfo = tuple._2;
+//                Row userInfoRow = userInfoMap.get(tuple._1);
+//                String sessionId = CustomStringUtils.getFieldFromConcatString(partAggrInfo, "\\|", Constants.FIELD_SESSION_ID);
+//
+//                int age = userInfoRow.getInt(3);
+//                String professional = userInfoRow.getString(4);
+//                String city = userInfoRow.getString(5);
+//                String sex = userInfoRow.getString(6);
+//
+//                String fullAggrInfo = partAggrInfo + "|"
+//                        + Constants.FIELD_AGE + "=" + age + "|"
+//                        + Constants.FIELD_PROFESSIONAL + "=" + professional + "|"
+//                        + Constants.FIELD_CITY + "=" + city + "|"
+//                        + Constants.FIELD_SEX + "=" + sex;
+//
+//                return new Tuple2<String, String>(sessionId, fullAggrInfo);
+//            }
+//        });
+
         return sessionId2FullAggrInfoRDD;
     }
 
@@ -1241,7 +1286,7 @@ public class UserVisitSessionAnalyzeSpark {
 //                    }
 //                }, 
 //                1000);
-        
+
 //        /**
 //         * 使用随机key实现双重聚合
 //         * 第1步，给每个key打上一个随机数
