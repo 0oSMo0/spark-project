@@ -631,6 +631,56 @@ public class UserVisitSessionAnalyzeSpark {
 //                }
 //        );
 
+        /**
+         * 数据倾斜解决方案之使用随机数以及扩容表进行join
+         */
+//        JavaPairRDD<String, Row> expandedRDD = userId2InfoRDD.flatMapToPair(new PairFlatMapFunction<Tuple2<Long, Row>, String, Row>() {
+//            @Override
+//            public Iterable<Tuple2<String, Row>> call(Tuple2<Long, Row> tuple) throws Exception {
+//                List<Tuple2<String, Row>> list = new ArrayList<Tuple2<String, Row>>();
+//                // 对每条数据都创建了10条出来（扩容）
+//                for (int i = 0; i < 10; i++) {
+//                    list.add(new Tuple2<String, Row>(0 + "_" + tuple._1, tuple._2));
+//                }
+//                return list;
+//            }
+//        });
+//        JavaPairRDD<String, String> mappedRDD = userId2PartAggrInfoRDD.mapToPair(
+//                new PairFunction<Tuple2<Long, String>, String, String>() {
+//                    @Override
+//                    public Tuple2<String, String> call(Tuple2<Long, String> tuple) throws Exception {
+//                        Random random = new Random();
+//                        int prefix = random.nextInt(10);
+//                        return new Tuple2<String, String>(prefix + "_" + tuple._1, tuple._2);
+//                    }
+//                });
+//        JavaPairRDD<String, Tuple2<String, Row>> joinedRDD = mappedRDD.join(expandedRDD);
+//        JavaPairRDD<String, String> finalRDD = joinedRDD.mapToPair(
+//                new PairFunction<Tuple2<String, Tuple2<String, Row>>, String, String>() {
+//                    private static final long serialVersionUID = 5380181045404411060L;
+//                    @Override
+//                    public Tuple2<String, String> call(Tuple2<String, Tuple2<String, Row>> tuple) throws Exception {
+//                        String partAggrInfo = tuple._2._1;// 是拼接好的
+//                        Row userInfoRow = tuple._2._2;
+//
+//                        String sessionId = CustomStringUtils.getFieldFromConcatString(partAggrInfo, "\\|", Constants.FIELD_SESSION_ID);
+//
+//                        int age = userInfoRow.getInt(3);
+//                        String professional = userInfoRow.getString(4);
+//                        String city = userInfoRow.getString(5);
+//                        String sex = userInfoRow.getString(6);
+//
+//                        String fullAggrInfo = partAggrInfo + "|"
+//                                + Constants.FIELD_AGE + "=" + age + "|"
+//                                + Constants.FIELD_PROFESSIONAL + "=" + professional + "|"
+//                                + Constants.FIELD_CITY + "=" + city + "|"
+//                                + Constants.FIELD_SEX + "=" + sex;
+//
+//                        return new Tuple2<String, String>(sessionId, fullAggrInfo);
+//                    }
+//                }
+//        );
+
         return sessionId2FullAggrInfoRDD;
     }
 
