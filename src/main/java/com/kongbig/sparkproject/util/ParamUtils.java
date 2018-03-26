@@ -2,6 +2,8 @@ package com.kongbig.sparkproject.util;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.kongbig.sparkproject.conf.ConfigurationManager;
+import com.kongbig.sparkproject.constant.Constants;
 import org.apache.log4j.Logger;
 
 /**
@@ -19,13 +21,18 @@ public class ParamUtils {
      * @param args 命令行参数
      * @return 任务id
      */
-    public static Long getTaskIdFromArgs(String[] args) {
-        try {
-            if (args != null && args.length > 0) {
-                return Long.valueOf(args[0]);// 取出了第一个参数
+    public static Long getTaskIdFromArgs(String[] args, String taskType) {
+        boolean local = ConfigurationManager.getBoolean(Constants.SPARK_LOCAL);
+        if (local) {
+            return ConfigurationManager.getLong(taskType);
+        } else {
+            try {
+                if (args != null && args.length > 0) {
+                    return Long.valueOf(args[0]);// 取出了第一个参数
+                }
+            } catch (NumberFormatException e) {
+                LOGGER.error(e.getMessage(), e);
             }
-        } catch (NumberFormatException e) {
-            LOGGER.error(e.getMessage(), e);
         }
         return null;
     }

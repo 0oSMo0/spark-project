@@ -55,12 +55,9 @@ public class UserVisitSessionAnalyzeSpark {
     private static final Logger LOGGER = Logger.getLogger(UserVisitSessionAnalyzeSpark.class);
 
     public static void main(String[] args) {
-        args = new String[]{"1"};
-
         // 构建Spark上下文
         SparkConf conf = new SparkConf()
                 .setAppName(Constants.SPARK_APP_NAME_SESSION)
-                .setMaster("local")
 //                .set("spark.default.parallelism","100")
                 .set("spark.storage.memoryFraction", "0.5")// 降低cache操作的内存占比(默认0.6)，从而减少JVM的minor gc和full gc操作
                 .set("spark.shuffle.consolidateFiles", "true")// shuffle调优，设置合并map端输出文件
@@ -73,6 +70,8 @@ public class UserVisitSessionAnalyzeSpark {
                 .registerKryoClasses(new Class[]{
                         CategorySortKey.class,
                         IntList.class});
+        SparkUtils.setMaster(conf);
+
         /**
          * 比如，获取top10热门品类功能中，二次排序，自定义了一个Key
          * 那个key是需要在进行shuffle的时候，进行网络传输的，因此也是要求实现序列化的
@@ -84,14 +83,18 @@ public class UserVisitSessionAnalyzeSpark {
         SQLContext sqlContext = getSQLContext(sc.sc());// 从JavaSparkContext取出对应的SparkContext
 
         // 生成模拟测试数据
-        mockData(sc, sqlContext);
+        SparkUtils.mockData(sc, sqlContext);
 
         // 创建需要使用的DAO组件
         ITaskDAO taskDAO = DAOFactory.getTaskDAO();
 
-        // 那么就首先得查询出来指定的任务
-        long taskId = ParamUtils.getTaskIdFromArgs(args);
+        // 那么就首先得查询出来指定的任务(session模块的任务id为1)
+        long taskId = ParamUtils.getTaskIdFromArgs(args, Constants.SPARK_APP_NAME_SESSION);
         Task task = taskDAO.findById(taskId);
+        if (task == null) {
+            System.out.println(new Date() + ": cannot find this task with id [" + taskId + "].");
+            return;
+        }
         JSONObject taskParam = JSONObject.parseObject(task.getTaskParam());// json串得到jsonObj
 
         /**
@@ -109,7 +112,7 @@ public class UserVisitSessionAnalyzeSpark {
          *
          * *重构完以后，actionRDD，就只在最开始，使用一次，用来生成以sessionId为key的RDD     
          */
-        JavaRDD<Row> actionRDD = getActionRDDByDateRange(sqlContext, taskParam);
+        JavaRDD<Row> actionRDD = SparkUtils.getActionRDDByDateRange(sqlContext, taskParam);
 
         JavaPairRDD<String, Row> sessionId2ActionRDD = getSessionId2ActionRDD(actionRDD);
         /**
@@ -246,44 +249,6 @@ public class UserVisitSessionAnalyzeSpark {
             // HiveContext是SQLContext的子类
             return new HiveContext(sc);
         }
-    }
-
-    /**
-     * 生成模拟数据（只有本地模式，才会去生成模拟数据）
-     *
-     * @param sc
-     * @param sqlContext
-     */
-    private static void mockData(JavaSparkContext sc, SQLContext sqlContext) {
-        Boolean local = ConfigurationManager.getBoolean(Constants.SPARK_LOCAL);
-        if (local) {
-            MockData.mock(sc, sqlContext);
-        }
-    }
-
-    /**
-     * 获取指定日期范围内的用户访问行为数据
-     *
-     * @param sqlContext SQLContext
-     * @param taskParam  任务参数
-     * @return 行为数据RDD
-     */
-    private static JavaRDD<Row> getActionRDDByDateRange(SQLContext sqlContext, JSONObject taskParam) {
-        String startDate = ParamUtils.getParam(taskParam, Constants.PARAM_START_DATE);
-        String endDate = ParamUtils.getParam(taskParam, Constants.PARAM_END_DATE);
-        String sql = "select * from user_visit_action " +
-                "where date >= '" + startDate + "' " +
-                "and date <= '" + endDate + "'";
-        DataFrame actionDF = sqlContext.sql(sql);
-        /**
-         * 解决SparkSQL无法设置并行度和task数量的方法：
-         * 使用repartition算子进行重分区。
-         * 比如说：SparkSQL默认就给第一个stage设置了20个task，但是根据你的数据量以及算法的复杂度
-         * 实际上，你需要1000个task去并行执行
-         * 所以说，在这里，可以对SparkSQL查询出来的RDD执行repartition重分区操作
-         */
-//        actionDF.javaRDD().repartition(1000);
-        return actionDF.javaRDD();
     }
 
     /**

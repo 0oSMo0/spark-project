@@ -73,4 +73,20 @@ public class ConfigurationManager {
         return false;
     }
 
+    /**
+     * 获取Long类型的配置项
+     *
+     * @param key 键值
+     * @return Long
+     */
+    public static Long getLong(String key) {
+        String value = getProperty(key);
+        try {
+            return Long.valueOf(value);
+        } catch (NumberFormatException e) {
+            LOGGER.error(e.getMessage(), e);
+        }
+        return 0L;
+    }
+
 }
