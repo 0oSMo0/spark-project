@@ -16,8 +16,8 @@ public interface Constants {
     String JDBC_USER = "jdbc.user";
     String JDBC_PASSWORD = "jdbc.password";
     String SPARK_LOCAL = "spark.local";
-    String SPARK_LOCAL_TASKID_SESSION="spark.local.taskId.session";
-    String SPARK_LOCAL_TASKID_PAGE="spark.local.taskId.page";
+    String SPARK_LOCAL_TASKID_SESSION = "spark.local.taskId.session";
+    String SPARK_LOCAL_TASKID_PAGE = "spark.local.taskId.page";
 
     /**
      * Spark作业相关的常量
@@ -70,5 +70,6 @@ public interface Constants {
     String PARAM_SEX = "sex";
     String PARAM_KEYWORD = "keywords";
     String PARAM_CATEGORY_IDS = "categoryIds";
+    String PARAM_TARGET_PAGE_FLOW = "targetPageFlow";
 
 }
