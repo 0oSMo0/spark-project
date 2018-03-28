@@ -2,10 +2,14 @@ package com.kongbig.sparkproject.spark.page;
 
 import com.alibaba.fastjson.JSONObject;
 import com.kongbig.sparkproject.constant.Constants;
+import com.kongbig.sparkproject.dao.IPageSplitConvertRateDAO;
 import com.kongbig.sparkproject.dao.ITaskDAO;
 import com.kongbig.sparkproject.dao.impl.DAOFactory;
+import com.kongbig.sparkproject.dao.impl.PageSplitConvertRateDAOImpl;
+import com.kongbig.sparkproject.domain.PageSplitConvertRate;
 import com.kongbig.sparkproject.domain.Task;
 import com.kongbig.sparkproject.util.DateUtils;
+import com.kongbig.sparkproject.util.NumberUtils;
 import com.kongbig.sparkproject.util.ParamUtils;
 import com.kongbig.sparkproject.util.SparkUtils;
 import org.apache.spark.SparkConf;
@@ -13,6 +17,7 @@ import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.PairFlatMapFunction;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.broadcast.Broadcast;
@@ -62,6 +67,7 @@ public class PageOneStepConvertRateSpark {
          * 因为要拿到每个session对应的访问行为数据，才能去生成切片
          */
         JavaPairRDD<String, Iterable<Row>> sessionId2actionsRDD = sessionId2actionRDD.groupByKey();
+        sessionId2actionsRDD = sessionId2actionsRDD.cache();// persist(StorageLevel.MEMORY_ONLY)
 
         /**
          * 最核心的一步，每个session的单跳页面切片生成，以及页面流的匹配，算法
@@ -71,7 +77,18 @@ public class PageOneStepConvertRateSpark {
                 sc, sessionId2actionsRDD, taskParam);
         // PV：page view页面访问量
         Map<String, Object> pageSplitPvMap = pageSplitRDD.countByKey();
-        
+        /**
+         * 使用者指定的页面流是3,2,5,8,6
+         * 所以拿到的pageSplitPvMap是：<3_2, num>，<2_5, num>，<5_8, num>，<8_6, num>
+         */
+        long startPagePv = getStartPagePv(taskParam, sessionId2actionsRDD);
+
+        // 计算目标页面流的各个页面切片的转化率
+        Map<String, Double> convertRateMap = computePageSplitConvertRate(
+                taskParam, pageSplitPvMap, startPagePv);
+
+        // 持久化页面切片转化率
+        persistConvertRate(taskId, convertRateMap);
     }
 
     /**
@@ -180,6 +197,106 @@ public class PageOneStepConvertRateSpark {
                         return list;
                     }
                 });
+    }
+
+    /**
+     * 获取页面流中初始页面的pv
+     *
+     * @param taskParam
+     * @param sessionId2actionsRDD
+     * @return
+     */
+    private static long getStartPagePv(
+            JSONObject taskParam,
+            JavaPairRDD<String, Iterable<Row>> sessionId2actionsRDD) {
+        String targetPageFlow = ParamUtils.getParam(taskParam, Constants.PARAM_TARGET_PAGE_FLOW);
+        final long startPageId = Long.valueOf(targetPageFlow.split(",")[0]);
+
+        JavaRDD<Long> startPageRDD = sessionId2actionsRDD.flatMap(
+                new FlatMapFunction<Tuple2<String, Iterable<Row>>, Long>() {
+                    private static final long serialVersionUID = -2897323360958552067L;
+
+                    @Override
+                    public Iterable<Long> call(Tuple2<String, Iterable<Row>> tuple) throws Exception {
+                        List<Long> list = new ArrayList<Long>();
+
+                        Iterator<Row> iterator = tuple._2.iterator();
+                        while (iterator.hasNext()) {
+                            Row row = iterator.next();
+                            long pageId = row.getLong(3);
+                            if (pageId == startPageId) {
+                                list.add(pageId);// 每个session的
+                            }
+                        }
+                        return list;
+                    }
+                });
+        return startPageRDD.count();
+    }
+
+    /**
+     * 计算页面切片转换率
+     *
+     * @param pageSplitPvMap 页面切片pv
+     * @param startPagePv    起始页面pv
+     * @return
+     */
+    private static Map<String, Double> computePageSplitConvertRate(
+            JSONObject taskParam,
+            Map<String, Object> pageSplitPvMap,
+            long startPagePv) {
+        Map<String, Double> convertRateMap = new HashMap<String, Double>();
+        String[] targetPages = ParamUtils.getParam(taskParam, Constants.PARAM_TARGET_PAGE_FLOW).split(",");
+        long lastPageSplitPv = 0L;
+
+        // 3,5,2,4,6
+        // 3_5
+        // 3_5 pv / 3 pv    即从3到5的数量除以访问3的数量
+        // 5_2 rate = 5_2 pv / 3_5 pv
+        // 通过for循环，获取目标页面流中的各个页面切片（pv）
+        for (int i = 1; i < targetPages.length; i++) {
+            String targetPageSplit = targetPages[i - 1] + "_" + targetPages[i];
+            long targetPageSplitPv = Long.valueOf(pageSplitPvMap.get(targetPageSplit) + "");
+
+            double convertRate = 0.0;
+
+            if (i == 1) {
+                convertRate = NumberUtils.formatDouble(
+                        (double) targetPageSplitPv / (double) startPagePv, 2);
+            } else {
+                // 目标pv / 上一个pv
+                convertRate = NumberUtils.formatDouble(
+                        (double) targetPageSplitPv / (double) lastPageSplitPv, 2);
+            }
+            convertRateMap.put(targetPageSplit, convertRate);
+
+            lastPageSplitPv = targetPageSplitPv;
+        }
+        return convertRateMap;
+    }
+
+    /**
+     * 持久化转化率
+     *
+     * @param convertRateMap
+     */
+    private static void persistConvertRate(long taskId, Map<String, Double> convertRateMap) {
+        StringBuffer buffer = new StringBuffer("");
+
+        for (Map.Entry<String, Double> convertRateEntry : convertRateMap.entrySet()) {
+            String pageSplit = convertRateEntry.getKey();
+            double convertRate = convertRateEntry.getValue();
+
+            buffer.append(pageSplit + "=" + convertRate + "|");
+        }
+
+        String convertRate = buffer.toString();
+        convertRate = convertRate.substring(0, convertRate.length() - 1);
+
+        PageSplitConvertRate pageSplitConvertRate = new PageSplitConvertRate(taskId, convertRate);
+
+        IPageSplitConvertRateDAO pageSplitConvertRateDAO = DAOFactory.getPageSplitConvertRateDAO();
+        pageSplitConvertRateDAO.insert(pageSplitConvertRate);
     }
 
 }

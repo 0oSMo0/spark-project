@@ -33,4 +33,8 @@ public class DAOFactory {
         return new Top10SessionDAOImpl();
     }
 
+    public static IPageSplitConvertRateDAO getPageSplitConvertRateDAO() {
+        return new PageSplitConvertRateDAOImpl();
+    }
+
 }

@@ -39,9 +39,19 @@ public class JDBCHelper {
         // 第一步，获取数据库连接池的大小
         Integer dataSourceSize = ConfigurationManager.getInteger(Constants.JDBC_DATASOURCE_SIZE);
         // 第二步：创建指定数量的数据库连接，并放入到数据库连接池中
-        String url = ConfigurationManager.getProperty(Constants.JDBC_URL);
-        String user = ConfigurationManager.getProperty(Constants.JDBC_USER);
-        String password = ConfigurationManager.getProperty(Constants.JDBC_PASSWORD);
+        boolean local = ConfigurationManager.getBoolean(Constants.SPARK_LOCAL);
+        String url = null;
+        String user = null;
+        String password = null;
+        if (local) {
+            url = ConfigurationManager.getProperty(Constants.JDBC_URL);
+            user = ConfigurationManager.getProperty(Constants.JDBC_USER);
+            password = ConfigurationManager.getProperty(Constants.JDBC_PASSWORD);
+        }else{
+            url = ConfigurationManager.getProperty(Constants.JDBC_URL_PROD);
+            user = ConfigurationManager.getProperty(Constants.JDBC_USER_PROD);
+            password = ConfigurationManager.getProperty(Constants.JDBC_PASSWORD_PROD);
+        }
         for (int i = 0; i < dataSourceSize; i++) {
             try {
                 Connection conn = DriverManager.getConnection(url, user, password);
