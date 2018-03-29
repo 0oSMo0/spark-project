@@ -88,7 +88,7 @@ public class MockData {
                             orderProductIds,
                             payCategoryIds, 
                             payProductIds,
-                            Long.valueOf(String.valueOf(random.nextInt(10))));// 城市Id
+                            Long.valueOf(String.valueOf(random.nextInt(10))));// 城市Id(模拟10个城市)
                     rows.add(row);
                 }
             }

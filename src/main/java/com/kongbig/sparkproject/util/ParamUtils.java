@@ -17,6 +17,8 @@ public class ParamUtils {
 
     /**
      * 从命令行参数中提取任务id
+     * 本地模式：直接取出my.properties设置的任务id
+     * 集群模式：取出args参数数组中传入的任务id
      *
      * @param args 命令行参数
      * @return 任务id
