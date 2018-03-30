@@ -37,4 +37,8 @@ public class DAOFactory {
         return new PageSplitConvertRateDAOImpl();
     }
 
+    public static IAreaTop3ProductDAO getAreaTop3ProductDAO() {
+        return new AreaTop3ProductDAOImpl();
+    }
+
 }
