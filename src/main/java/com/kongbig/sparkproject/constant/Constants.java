@@ -22,6 +22,8 @@ public interface Constants {
     String SPARK_LOCAL_TASKID_SESSION = "spark.local.taskId.session";
     String SPARK_LOCAL_TASKID_PAGE = "spark.local.taskId.page";
     String SPARK_LOCAL_TASKID_PRODUCT = "spark.local.taskId.product";
+    String KAFKA_METADATA_BROKER_LIST = "kafka.metadata.broker.list";
+    String KAFKA_TOPICS = "kafka.topics";
 
     /**
      * Spark作业相关的常量

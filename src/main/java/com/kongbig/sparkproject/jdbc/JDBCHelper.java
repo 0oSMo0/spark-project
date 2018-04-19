@@ -47,7 +47,7 @@ public class JDBCHelper {
             url = ConfigurationManager.getProperty(Constants.JDBC_URL);
             user = ConfigurationManager.getProperty(Constants.JDBC_USER);
             password = ConfigurationManager.getProperty(Constants.JDBC_PASSWORD);
-        }else{
+        } else {
             url = ConfigurationManager.getProperty(Constants.JDBC_URL_PROD);
             user = ConfigurationManager.getProperty(Constants.JDBC_USER_PROD);
             password = ConfigurationManager.getProperty(Constants.JDBC_PASSWORD_PROD);
@@ -65,7 +65,7 @@ public class JDBCHelper {
     /**
      * 两步检查机制的单例模式
      *
-     * @return
+     * @return JDBCHelper
      */
     public static JDBCHelper getInstance() {
         if (null == instance) {
@@ -83,9 +83,9 @@ public class JDBCHelper {
      * 有可能获取的时候，连接都被用光了，就暂时获取不到数据库连接
      * 实现一个简单的等待机制，去等待获取到数据库连接
      *
-     * @return
+     * @return Connection
      */
-    public synchronized Connection getConnection() {
+    private synchronized Connection getConnection() {
         while (dataSource.size() == 0) {
             try {
                 // 无连接则等待10毫秒
@@ -100,9 +100,9 @@ public class JDBCHelper {
     /**
      * 执行增删改SQL语句
      *
-     * @param sql
-     * @param params
-     * @return
+     * @param sql    SQL
+     * @param params 参数
+     * @return 影响的行数
      */
     public int executeUpdate(String sql, Object[] params) {
         int rtn = 0;
@@ -129,9 +129,9 @@ public class JDBCHelper {
     /**
      * 执行查询sql语句
      *
-     * @param sql
-     * @param params
-     * @param callback
+     * @param sql      SQL
+     * @param params   参数
+     * @param callback QueryCallback
      */
     public void executeQuery(String sql, Object[] params, QueryCallback callback) {
         Connection conn = null;
@@ -173,8 +173,8 @@ public class JDBCHelper {
      * 执行的时候，也仅仅编译一次就可以
      * 这种批量执行SQL语句的方式，可以大大提升性能
      *
-     * @param sql
-     * @param paramsList
+     * @param sql        SQL
+     * @param paramsList 参数list
      * @return 每条SQL语句影响的行数
      */
     public int[] executeBatch(String sql, List<Object[]> paramsList) {
@@ -188,11 +188,13 @@ public class JDBCHelper {
             pstmt = conn.prepareStatement(sql);
 
             // 第二步：使用PreparedStatement.addBatch()方法加入批量的SQL参数
-            for (Object[] params : paramsList) {
-                for (int i = 0; i < params.length; i++) {
-                    pstmt.setObject(i + 1, params[i]);
+            if (null != paramsList && paramsList.size() > 0) {
+                for (Object[] params : paramsList) {
+                    for (int i = 0; i < params.length; i++) {
+                        pstmt.setObject(i + 1, params[i]);
+                    }
+                    pstmt.addBatch();
                 }
-                pstmt.addBatch();
             }
 
             // 第三步：使用PreparedStatement.executeBatch()方法，执行批量的SQL语句
@@ -217,8 +219,8 @@ public class JDBCHelper {
         /**
          * 处理查询结果
          *
-         * @param rs
-         * @throws Exception
+         * @param rs ResultSet
+         * @throws Exception 异常
          */
         void process(ResultSet rs) throws Exception;
     }

@@ -16,8 +16,9 @@ public class DateUtils {
 
     private static final Logger LOGGER = Logger.getLogger(DateUtils.class);
 
-    public static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    private static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    private static final SimpleDateFormat DATEKEY_FORMAT = new SimpleDateFormat("yyyyMMdd");
 
     /**
      * 判断一个时间是否在另一个时间之前
@@ -85,8 +86,8 @@ public class DateUtils {
     /**
      * 获取年月日和小时
      *
-     * @param datetime 时间（yyyy-MM-dd HH:mm:ss）
-     * @return 结果 yyyy-MM-dd_HH
+     * @param datetime yyyy-MM-dd HH:mm:ss
+     * @return yyyy-MM-dd_HH
      */
     public static String getDateHour(String datetime) {
         String date = datetime.split(" ")[0];
@@ -96,18 +97,18 @@ public class DateUtils {
     }
 
     /**
-     * 获取当天日期（yyyy-MM-dd）
+     * 获取当天日期
      *
-     * @return
+     * @return yyyy-MM-dd
      */
     public static String getTodayDate() {
         return DATE_FORMAT.format(new Date());
     }
 
     /**
-     * 获取昨天的日期（yyyy-MM-dd）
+     * 获取昨天的日期
      *
-     * @return 昨天的日期
+     * @return yyyy-MM-dd
      */
     public static String getYesterdayDate() {
         Calendar cal = Calendar.getInstance();
@@ -120,20 +121,20 @@ public class DateUtils {
     }
 
     /**
-     * 格式化日期（yyyy-MM-dd）
+     * 格式化日期
      *
      * @param date Date对象
-     * @return 格式化后的日期
+     * @return yyyy-MM-dd
      */
     public static String formatDate(Date date) {
         return DATE_FORMAT.format(date);
     }
 
     /**
-     * 格式化时间（yyyy-MM-dd HH:mm:ss）
+     * 格式化时间
      *
      * @param date Date对象
-     * @return 格式化后的时间
+     * @return yyyy-MM-dd HH:mm:ss
      */
     public static String formatTime(Date date) {
         return TIME_FORMAT.format(date);
@@ -143,7 +144,7 @@ public class DateUtils {
      * 解析时间字符串
      *
      * @param time 时间字符串
-     * @return
+     * @return yyyy-MM-dd HH:mm:ss
      */
     public static Date parseTime(String time) {
         try {
@@ -152,6 +153,16 @@ public class DateUtils {
             LOGGER.error(e.getMessage(), e);
         }
         return null;
+    }
+
+    /**
+     * 格式化日期key
+     *
+     * @param date Date
+     * @return yyyyMMdd
+     */
+    public static String formatDateKey(Date date) {
+        return DATEKEY_FORMAT.format(date);
     }
 
 }
