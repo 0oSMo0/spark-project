@@ -165,4 +165,19 @@ public class DateUtils {
         return DATEKEY_FORMAT.format(date);
     }
 
+    /**
+     * 将yyyyMMdd转换成Date格式
+     *
+     * @param dateKey yyyyMMdd
+     * @return Date
+     */
+    public static Date parseDateKey(String dateKey) {
+        try {
+            return DATEKEY_FORMAT.parse(dateKey);
+        } catch (ParseException e) {
+            LOGGER.error(e.getMessage(), e);
+        }
+        return null;
+    }
+
 }
