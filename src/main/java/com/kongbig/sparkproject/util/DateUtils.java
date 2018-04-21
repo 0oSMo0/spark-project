@@ -180,4 +180,15 @@ public class DateUtils {
         return null;
     }
 
+    /**
+     * 格式化时间，保留到分钟级别
+     *
+     * @param date Date
+     * @return yyyyMMddHHmm
+     */
+    public static String formatTimeMinute(Date date) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmm");
+        return sdf.format(date);
+    }
+
 }

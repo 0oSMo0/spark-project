@@ -3,18 +3,11 @@ package com.kongbig.sparkproject.spark.ad;
 import com.google.common.base.Optional;
 import com.kongbig.sparkproject.conf.ConfigurationManager;
 import com.kongbig.sparkproject.constant.Constants;
-import com.kongbig.sparkproject.dao.IAdBlackListDAO;
-import com.kongbig.sparkproject.dao.IAdProvinceTop3DAO;
-import com.kongbig.sparkproject.dao.IAdStatDAO;
-import com.kongbig.sparkproject.dao.IAdUserClickCountDAO;
+import com.kongbig.sparkproject.dao.*;
 import com.kongbig.sparkproject.dao.impl.DAOFactory;
-import com.kongbig.sparkproject.domain.AdBlackList;
-import com.kongbig.sparkproject.domain.AdProvinceTop3;
-import com.kongbig.sparkproject.domain.AdStat;
-import com.kongbig.sparkproject.domain.AdUserClickCount;
+import com.kongbig.sparkproject.domain.*;
 import com.kongbig.sparkproject.util.DateUtils;
 import kafka.serializer.StringDecoder;
-import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -116,7 +109,11 @@ public class AdClickRealTimeStatSpark {
         // 业务功能二：实时统计每天每个省份top3热门广告
         calculateProvinceTop3Ad(adRealTimeStatDStream);
 
-        // 业务功能三：实时统计每天每个广告在最近1小时的滑动窗口内的点击趋势（每分钟的点击量）
+        /*
+         * 业务功能三：实时统计每天每个广告在最近1小时的滑动窗口内的点击趋势（每分钟的点击量）
+         * 每支广告的点击趋势
+         */
+        calculateAdClickCountByWindow(adRealTimeLogDStream);
 
         // 构建完Spark Streaming上下文之后，记得要进行上下文的启动，等待执行结束、关闭
         jssc.start();
@@ -703,6 +700,89 @@ public class AdClickRealTimeStatSpark {
 
                         IAdProvinceTop3DAO adProvinceTop3DAO = DAOFactory.getAdProvinceTop3DAO();
                         adProvinceTop3DAO.updateBatch(adProvinceTop3s);
+                    }
+                });
+
+                return null;
+            }
+        });
+    }
+
+    /**
+     * 计算最近1小时滑动窗口的广告点击趋势
+     *
+     * @param adRealTimeLogDStream adRealTimeLogDStream
+     */
+    private static void calculateAdClickCountByWindow(
+            JavaPairInputDStream<String, String> adRealTimeLogDStream) {
+        // 映射成<yyyyMMddHHmm_adId, 1L>
+        JavaPairDStream<String, Long> pairDStream = adRealTimeLogDStream.mapToPair(
+                new PairFunction<Tuple2<String, String>, String, Long>() {
+                    private static final long serialVersionUID = 8268428031580913421L;
+
+                    @Override
+                    public Tuple2<String, Long> call(Tuple2<String, String> tuple) throws Exception {
+                        // timeStamp province city userId adId
+                        String[] logSplited = tuple._2.split("_");
+                        String timeMinute = DateUtils.formatTimeMinute(
+                                new Date(Long.valueOf(logSplited[0])));
+                        long adId = Long.valueOf(logSplited[4]);
+
+                        return new Tuple2<String, Long>(timeMinute + "_" + adId, 1L);
+                    }
+                });
+
+        /*
+         * 过来的每个batch rdd，都会被映射成<yyyyMMddHHmm_adId, 1L>
+         * 每次出来一个新的batch，都要获取最近1小时内的所有的batch
+         * 然后根据key进行reduceByKey操作，统计出来最近一小时内的各分钟各广告的点击次数
+         * 1小时滑动窗口的广告点击趋势 -> 点图 / 折线图
+         */
+        JavaPairDStream<String, Long> aggrRDD = pairDStream.reduceByKeyAndWindow(new Function2<Long, Long, Long>() {
+            private static final long serialVersionUID = -6219786588781444918L;
+
+            @Override
+            public Long call(Long v1, Long v2) throws Exception {
+                return v1 + v2;
+            }
+        }, Durations.minutes(60), Durations.seconds(10));// 每10秒取60分钟的数据
+
+        /*
+         * aggrRDD
+         * 每次都可以拿到，最近1小时内，各分钟（yyyyMMddHHmm）各广告的点击量
+         * 各广告，在最近1小时内，各分钟的点击量
+         */
+        aggrRDD.foreachRDD(new Function<JavaPairRDD<String, Long>, Void>() {
+            private static final long serialVersionUID = 6025738971606428708L;
+
+            @Override
+            public Void call(JavaPairRDD<String, Long> rdd) throws Exception {
+                rdd.foreachPartition(new VoidFunction<Iterator<Tuple2<String, Long>>>() {
+                    private static final long serialVersionUID = -6664443747829345824L;
+
+                    @Override
+                    public void call(Iterator<Tuple2<String, Long>> iterator) throws Exception {
+                        List<AdClickTrend> adClickTrends = new ArrayList<AdClickTrend>();
+
+                        while (iterator.hasNext()) {
+                            Tuple2<String, Long> tuple = iterator.next();
+                            String[] keySplited = tuple._1.split("_");
+                            // yyyyMMddHHmm
+                            String dateMinute = keySplited[0];
+                            long adId = Long.valueOf(keySplited[1]);
+                            long clickCount = tuple._2;
+
+                            String date = DateUtils.formatDate(DateUtils.parseDateKey(
+                                    dateMinute.substring(0, 8)));
+                            String hour = dateMinute.substring(8, 10);
+                            String minute = dateMinute.substring(10);
+
+                            AdClickTrend adClickTrend = new AdClickTrend(date, hour, minute, adId, clickCount);
+                            adClickTrends.add(adClickTrend);
+                        }
+
+                        IAdClickTrendDAO adClickTrendDAO = DAOFactory.getAdClickTrendDAO();
+                        adClickTrendDAO.updateBatch(adClickTrends);
                     }
                 });
 
