@@ -40,8 +40,11 @@ public class AdClickRealTimeStatSpark {
         // 构建Spark Streaming上下文
         SparkConf conf = new SparkConf()
                 .setMaster("local[2]")
-                .setAppName("AdClickRealTimeStatSpark")
-                .set("spark.streaming.receiver.writeAheadLog.enable", "true");
+                .setAppName("AdClickRealTimeStatSpark");
+//                .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+//                .set("spark.default.parallelism", "1000")
+//                .set("spark.streaming.blockInterval", "50");
+//                .set("spark.streaming.receiver.writeAheadLog.enable", "true");
 
         /*
          * Spark Streaming的上下文是构建JavaStreamingContext对象
@@ -93,6 +96,8 @@ public class AdClickRealTimeStatSpark {
                 StringDecoder.class,// valueDecoderClass
                 kafkaParams,// kafkaParams
                 topics);// topics
+
+//        adRealTimeLogDStream.repartition(1000);
 
         // 根据动态黑名单进行数据过滤
         JavaPairDStream<String, String> filteredAdRealTimeLogDStream =
@@ -322,6 +327,7 @@ public class AdClickRealTimeStatSpark {
                         return v1 + v2;
                     }
                 });
+//                }, 1000);
 
         /*
          * 到这里为止获取到的数据？
