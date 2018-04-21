@@ -23,10 +23,7 @@ import org.apache.spark.sql.hive.HiveContext;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.streaming.Durations;
-import org.apache.spark.streaming.api.java.JavaDStream;
-import org.apache.spark.streaming.api.java.JavaPairDStream;
-import org.apache.spark.streaming.api.java.JavaPairInputDStream;
-import org.apache.spark.streaming.api.java.JavaStreamingContext;
+import org.apache.spark.streaming.api.java.*;
 import org.apache.spark.streaming.kafka.KafkaUtils;
 import scala.Tuple2;
 
@@ -43,7 +40,8 @@ public class AdClickRealTimeStatSpark {
         // 构建Spark Streaming上下文
         SparkConf conf = new SparkConf()
                 .setMaster("local[2]")
-                .setAppName("AdClickRealTimeStatSpark");
+                .setAppName("AdClickRealTimeStatSpark")
+                .set("spark.streaming.receiver.writeAheadLog.enable", "true");
 
         /*
          * Spark Streaming的上下文是构建JavaStreamingContext对象
@@ -61,6 +59,7 @@ public class AdClickRealTimeStatSpark {
          * 每隔5秒钟，Spark Streaming作业就会收集最近5秒钟内的数据源接收过来的数据
          */
         JavaStreamingContext jssc = new JavaStreamingContext(conf, Durations.seconds(5));
+        jssc.checkpoint("hdfs://192.168.33.71:9090/streaming_checkpoint");
 
         // 正式开始进行代码的编写，实现需求中的实时计算的业务逻辑和功能
 
@@ -119,6 +118,63 @@ public class AdClickRealTimeStatSpark {
         jssc.start();
         jssc.awaitTermination();
         jssc.close();
+    }
+
+    /**
+     * Driver高可用性
+     * <p>
+     * spark-submit
+     * --deploy-mode cluster
+     * --supervise
+     */
+    public static void testDriverHA() {
+        final String checkpointDir = "hdfs://192.168.33.71:9090/streaming_checkpoint";
+
+        JavaStreamingContextFactory contextFactory = new JavaStreamingContextFactory() {
+            @Override
+            public JavaStreamingContext create() {
+                SparkConf conf = new SparkConf()
+                        .setMaster("local[2]")
+                        .setAppName("AdClickRealTimeStatSpark");
+
+                JavaStreamingContext jssc = new JavaStreamingContext(
+                        conf, Durations.seconds(5));
+                jssc.checkpoint(checkpointDir);
+
+                Map<String, String> kafkaParams = new HashMap<String, String>();
+                kafkaParams.put(Constants.KAFKA_METADATA_BROKER_LIST,
+                        ConfigurationManager.getProperty(Constants.KAFKA_METADATA_BROKER_LIST));
+                String kafkaTopics = ConfigurationManager.getProperty(Constants.KAFKA_TOPICS);
+                String[] kafkaTopicsSplited = kafkaTopics.split(",");
+                Set<String> topics = new HashSet<String>();
+                for (String kafkaTopic : kafkaTopicsSplited) {
+                    topics.add(kafkaTopic);
+                }
+
+                JavaPairInputDStream<String, String> adRealTimeLogDStream = KafkaUtils.createDirectStream(
+                        jssc,
+                        String.class,
+                        String.class,
+                        StringDecoder.class,
+                        StringDecoder.class,
+                        kafkaParams,
+                        topics);
+
+                JavaPairDStream<String, String> filteredAdRealTimeLogDStream =
+                        filterByBlacklist(adRealTimeLogDStream);
+                generateDynamicBlackList(filteredAdRealTimeLogDStream);
+                JavaPairDStream<String, Long> adRealTimeStatDStream = calculateRealTimeStat(
+                        filteredAdRealTimeLogDStream);
+                calculateProvinceTop3Ad(adRealTimeStatDStream);
+                calculateAdClickCountByWindow(adRealTimeLogDStream);
+
+                return jssc;
+            }
+        };
+
+        JavaStreamingContext context = JavaStreamingContext.getOrCreate(checkpointDir, contextFactory);
+        context.start();
+        context.awaitTermination();
     }
 
     /**
