@@ -53,4 +53,8 @@ public class DAOFactory {
         return new AdStatDAOImpl();
     }
 
+    public static IAdProvinceTop3DAO getAdProvinceTop3DAO() {
+        return new AdProvinceTop3DAOImpl();
+    }
+
 }
