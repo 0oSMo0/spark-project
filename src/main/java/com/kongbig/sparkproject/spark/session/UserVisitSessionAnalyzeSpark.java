@@ -76,7 +76,7 @@ public class UserVisitSessionAnalyzeSpark {
          * 比如，获取top10热门品类功能中，二次排序，自定义了一个Key
          * 那个key是需要在进行shuffle的时候，进行网络传输的，因此也是要求实现序列化的
          * 启用kryo机制以后，就会用Kyro去序列化和反序列化CategorySortKey
-         * 所以这里要求，为了获取最佳心能，注册一下我们自定义的类
+         * 所以这里要求，为了获取最佳性能，注册一下我们自定义的类
          */
         JavaSparkContext sc = new JavaSparkContext(conf);
         // sc.checkpointFile("hdfs://");
@@ -110,7 +110,7 @@ public class UserVisitSessionAnalyzeSpark {
          *      1、与通过筛选的sessionId进行join，获取通过筛选的session的明细数据
          *      2、将这个RDD，直接传入aggregateBySession方法，进行session聚合统计
          *
-         * *重构完以后，actionRDD，就只在最开始，使用一次，用来生成以sessionId为key的RDD     
+         * *重构完以后，actionRDD，就只在最开始，使用一次，用来生成以sessionId为key的RDD
          */
         JavaRDD<Row> actionRDD = SparkUtils.getActionRDDByDateRange(sqlContext, taskParam);
 
@@ -166,7 +166,7 @@ public class UserVisitSessionAnalyzeSpark {
         sessionId2DetailRDD = sessionId2DetailRDD.persist(StorageLevel.MEMORY_ONLY());
 
         /**
-         * 对于Accumulator这种分布式累加计算的变量的使用，有一个重要的说明：
+         * 对于>>Accumulator这种分布式累加计算的变量<<的使用，有一个重要的说明：
          * 从Accumulator中，获取数据，插入数据库的时候，一定要是在有某一个action操作以后再进行。
          * 如果没有action的话，那么整个程序根本不会运行。
          *
@@ -284,8 +284,9 @@ public class UserVisitSessionAnalyzeSpark {
     /**
      * 对行为数据按session粒度进行聚合(aggregate)
      *
-     * @param sqlContext
-     * @param actionRDD  actionRDD 行为数据RDD
+     * @param sc                  JavaSparkContext
+     * @param sqlContext          SQLContext
+     * @param sessionId2ActionRDD sessionId2ActionRDD
      * @return session粒度聚合数据
      */
     private static JavaPairRDD<String, String> aggregateBySession(
@@ -298,7 +299,7 @@ public class UserVisitSessionAnalyzeSpark {
                 = sessionId2ActionRDD.groupByKey();
 
         // 对每一个session分组进行聚合，将session中所有的搜索词和点击品类都聚合起来
-        // 到此，数据格式如下：<userId, partAggrInfo(sessionId,searchKeywords,clickCategoryIds)>
+        // 到此，数据格式如下：<userId, partAggrInfo(sessionId,searchKeywords,clickCategoryIds,visitLength,stepLength,startTime)>
         JavaPairRDD<Long, String> userId2PartAggrInfoRDD = sessionId2ActionsRDD.mapToPair(
                 new PairFunction<Tuple2<String, Iterable<Row>>, Long, String>() {
                     private static final long serialVersionUID = -2551197416671460542L;
@@ -827,6 +828,7 @@ public class UserVisitSessionAnalyzeSpark {
 
                     @Override
                     public Tuple2<String, Row> call(Tuple2<String, Tuple2<String, Row>> tuple) throws Exception {
+                        // <sessionId, Row>
                         return new Tuple2<String, Row>(tuple._1, tuple._2._2);
                     }
                 });

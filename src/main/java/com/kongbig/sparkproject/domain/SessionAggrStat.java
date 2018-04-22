@@ -160,4 +160,28 @@ public class SessionAggrStat {
     public void setStep_length_60_ratio(double step_length_60_ratio) {
         this.step_length_60_ratio = step_length_60_ratio;
     }
+
+    @Override
+    public String toString() {
+        return "SessionAggrStat{" +
+                "taskId=" + taskId +
+                ", session_count=" + session_count +
+                ", visit_length_1s_3s_ratio=" + visit_length_1s_3s_ratio +
+                ", visit_length_4s_6s_ratio=" + visit_length_4s_6s_ratio +
+                ", visit_length_7s_9s_ratio=" + visit_length_7s_9s_ratio +
+                ", visit_length_10s_30s_ratio=" + visit_length_10s_30s_ratio +
+                ", visit_length_30s_60s_ratio=" + visit_length_30s_60s_ratio +
+                ", visit_length_1m_3m_ratio=" + visit_length_1m_3m_ratio +
+                ", visit_length_3m_10m_ratio=" + visit_length_3m_10m_ratio +
+                ", visit_length_10m_30m_ratio=" + visit_length_10m_30m_ratio +
+                ", visit_length_30m_ratio=" + visit_length_30m_ratio +
+                ", step_length_1_3_ratio=" + step_length_1_3_ratio +
+                ", step_length_4_6_ratio=" + step_length_4_6_ratio +
+                ", step_length_7_9_ratio=" + step_length_7_9_ratio +
+                ", step_length_10_30_ratio=" + step_length_10_30_ratio +
+                ", step_length_30_60_ratio=" + step_length_30_60_ratio +
+                ", step_length_60_ratio=" + step_length_60_ratio +
+                '}';
+    }
+    
 }

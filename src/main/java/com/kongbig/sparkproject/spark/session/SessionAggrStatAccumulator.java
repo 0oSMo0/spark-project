@@ -82,7 +82,7 @@ public class SessionAggrStatAccumulator implements AccumulatorParam<String> {
             return v2;
         }
 
-        // 使用CustomStringUtils工具类，从v1中，提取v2对应的值，并累加1。
+        // 使用CustomStringUtils工具类，从v1中，提取v2字段对应的值，并累加1。
         String oldValue = CustomStringUtils.getFieldFromConcatString(v1, "\\|", v2);
         if (StringUtils.isNotEmpty(oldValue)) {
             // 将范围区间原有的值，累加1

@@ -73,7 +73,7 @@ public class AdClickRealTimeStatSpark {
         // 构建kafka参数map
         // 主要放置的是，要链接的kafka集群的地址(broker集群的地址列表)
         Map<String, String> kafkaParams = new HashMap<String, String>();
-        kafkaParams.put(Constants.KAFKA_METADATA_BROKER_LIST,
+        kafkaParams.put("metadata.broker.list",
                 ConfigurationManager.getProperty(Constants.KAFKA_METADATA_BROKER_LIST));
 
         // 构建topic参数set

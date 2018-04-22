@@ -110,11 +110,17 @@ public class JDBCHelper {
         PreparedStatement pstmt = null;
         try {
             conn = getConnection();
+            conn.setAutoCommit(false);
+            
             pstmt = conn.prepareStatement(sql);
-            for (int i = 0; i < params.length; i++) {
-                pstmt.setObject(i + 1, params[i]);
+            if (params != null && params.length > 0) {
+                for (int i = 0; i < params.length; i++) {
+                    pstmt.setObject(i + 1, params[i]);
+                }
             }
             rtn = pstmt.executeUpdate();
+            
+            conn.commit();
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
         } finally {
@@ -190,8 +196,10 @@ public class JDBCHelper {
             // 第二步：使用PreparedStatement.addBatch()方法加入批量的SQL参数
             if (null != paramsList && paramsList.size() > 0) {
                 for (Object[] params : paramsList) {
-                    for (int i = 0; i < params.length; i++) {
-                        pstmt.setObject(i + 1, params[i]);
+                    if (params != null && params.length > 0) {
+                        for (int i = 0; i < params.length; i++) {
+                            pstmt.setObject(i + 1, params[i]);
+                        }
                     }
                     pstmt.addBatch();
                 }
@@ -200,7 +208,7 @@ public class JDBCHelper {
             // 第三步：使用PreparedStatement.executeBatch()方法，执行批量的SQL语句
             rtn = pstmt.executeBatch();
 
-            // 最后一步：
+            // 最后一步：使用Connection对象，提交批量的SQL语句
             conn.commit();
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
