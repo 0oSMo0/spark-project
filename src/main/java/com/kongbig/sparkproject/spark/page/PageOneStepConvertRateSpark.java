@@ -121,7 +121,9 @@ public class PageOneStepConvertRateSpark {
             JavaSparkContext sc,
             JavaPairRDD<String, Iterable<Row>> sessionId2actionsRDD,
             JSONObject taskParam) {
+        // taskParam从task表中查询得到的参数json串，获取targetPageFlow字段的值
         final String targetPageFlow = ParamUtils.getParam(taskParam, Constants.PARAM_TARGET_PAGE_FLOW);
+        // 广播到每一个task
         final Broadcast<String> targetPageFlowBroadcast = sc.broadcast(targetPageFlow);
 
         return sessionId2actionsRDD.flatMapToPair(
@@ -131,7 +133,7 @@ public class PageOneStepConvertRateSpark {
                     @Override
                     public Iterable<Tuple2<String, Integer>> call(
                             Tuple2<String, Iterable<Row>> tuple) throws Exception {
-                        // 定义返回list
+                        // 定义返回list(生成好的且在用户指定的页面流中的页面切片)
                         List<Tuple2<String, Integer>> list = new ArrayList<Tuple2<String, Integer>>();
                         // 获取到当前session的访问行为的迭代器
                         Iterator<Row> iterator = tuple._2.iterator();
@@ -180,7 +182,7 @@ public class PageOneStepConvertRateSpark {
                             // pageId=5，切片，3_5
                             String pageSplit = lastPageId + "_" + pageId;
 
-                            // 对这个切片判断一下，看是否在用户指定的页面流中
+                            // 对这个切片判断一下，看是否在用户指定的页面流(targetPages)中
                             for (int i = 1; i < targetPages.length; i++) {
                                 // 比如说，用户指定的页面流是3,2,5,8,1
                                 // 遍历的时候，从索引1开始，就是从第二个页面开始
@@ -256,7 +258,7 @@ public class PageOneStepConvertRateSpark {
         // 通过for循环，获取目标页面流中的各个页面切片（pv）
         for (int i = 1; i < targetPages.length; i++) {
             String targetPageSplit = targetPages[i - 1] + "_" + targetPages[i];
-            long targetPageSplitPv = Long.valueOf(pageSplitPvMap.get(targetPageSplit) + "");
+            long targetPageSplitPv = Long.valueOf(String.valueOf(pageSplitPvMap.get(targetPageSplit)));
 
             double convertRate = 0.0;
 
@@ -284,14 +286,14 @@ public class PageOneStepConvertRateSpark {
         StringBuffer buffer = new StringBuffer("");
 
         for (Map.Entry<String, Double> convertRateEntry : convertRateMap.entrySet()) {
-            String pageSplit = convertRateEntry.getKey();
-            double convertRate = convertRateEntry.getValue();
+            String pageSplit = convertRateEntry.getKey();// key
+            double convertRate = convertRateEntry.getValue();// value
 
-            buffer.append(pageSplit + "=" + convertRate + "|");
+            buffer.append(pageSplit + "=" + convertRate + "|");// key=value|
         }
 
         String convertRate = buffer.toString();
-        convertRate = convertRate.substring(0, convertRate.length() - 1);
+        convertRate = convertRate.substring(0, convertRate.length() - 1);// 去掉最后的'|'
 
         PageSplitConvertRate pageSplitConvertRate = new PageSplitConvertRate(taskId, convertRate);
 

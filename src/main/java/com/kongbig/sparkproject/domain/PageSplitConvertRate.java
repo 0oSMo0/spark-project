@@ -1,11 +1,12 @@
 package com.kongbig.sparkproject.domain;
 
 /**
- * Describe: 页面切片转化率
+ * Describe: 页面切片转化率实体
  * Author:   kongbig
  * Data:     2018/3/27 15:57.
  */
 public class PageSplitConvertRate {
+    
     private long taskId;
     private String convertRate;
 
@@ -40,4 +41,5 @@ public class PageSplitConvertRate {
                 ", convertRate='" + convertRate + '\'' +
                 '}';
     }
+    
 }

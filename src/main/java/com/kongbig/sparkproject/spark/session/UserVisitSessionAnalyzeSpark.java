@@ -89,7 +89,7 @@ public class UserVisitSessionAnalyzeSpark {
         ITaskDAO taskDAO = DAOFactory.getTaskDAO();
 
         // 那么就首先得查询出来指定的任务(session模块的任务id为1)
-        long taskId = ParamUtils.getTaskIdFromArgs(args, Constants.SPARK_APP_NAME_SESSION);
+        long taskId = ParamUtils.getTaskIdFromArgs(args, Constants.SPARK_LOCAL_TASKID_SESSION);
         Task task = taskDAO.findById(taskId);
         if (task == null) {
             System.out.println(new Date() + ": cannot find this task with id [" + taskId + "].");
@@ -1236,8 +1236,10 @@ public class UserVisitSessionAnalyzeSpark {
                         if (orderCategoryIds != null) {
                             String[] orderCategoryIdsSplited = orderCategoryIds.split(",");
                             for (String orderCategoryId : orderCategoryIdsSplited) {
-                                list.add(new Tuple2<Long, Long>(Long.valueOf(orderCategoryId),
-                                        Long.valueOf(orderCategoryId)));
+                                if (orderCategoryId != null && orderCategoryId.matches("[0-9]*")) {
+                                    list.add(new Tuple2<Long, Long>(Long.valueOf(orderCategoryId),
+                                            Long.valueOf(orderCategoryId)));
+                                }
                             }
                         }
 
@@ -1245,8 +1247,10 @@ public class UserVisitSessionAnalyzeSpark {
                         if (payCategoryIds != null) {
                             String[] payCategoryIdsSplited = payCategoryIds.split(",");
                             for (String payCategoryId : payCategoryIdsSplited) {
-                                list.add(new Tuple2<Long, Long>(Long.valueOf(payCategoryId),
-                                        Long.valueOf(payCategoryId)));
+                                if (payCategoryId != null && payCategoryId.matches("[0-9]*")) {
+                                    list.add(new Tuple2<Long, Long>(Long.valueOf(payCategoryId),
+                                            Long.valueOf(payCategoryId)));
+                                }
                             }
                         }
                         return list;
@@ -1492,7 +1496,9 @@ public class UserVisitSessionAnalyzeSpark {
                         List<Tuple2<Long, Long>> list = new ArrayList<Tuple2<Long, Long>>();
 
                         for (String orderCategoryId : orderCategoryIdsSplited) {
-                            list.add(new Tuple2<Long, Long>(Long.valueOf(orderCategoryId), 1L));
+                            if (orderCategoryId != null && orderCategoryId.matches("[0-9]*")) {
+                                list.add(new Tuple2<Long, Long>(Long.valueOf(orderCategoryId), 1L));
+                            }
                         }
                         return list;
                     }
@@ -1541,7 +1547,9 @@ public class UserVisitSessionAnalyzeSpark {
                         List<Tuple2<Long, Long>> list = new ArrayList<Tuple2<Long, Long>>();
 
                         for (String payCategoryId : payCategoryIdsSplited) {
-                            list.add(new Tuple2<Long, Long>(Long.valueOf(payCategoryId), 1L));
+                            if (payCategoryId != null && payCategoryId.matches("[0-9]*")) {
+                                list.add(new Tuple2<Long, Long>(Long.valueOf(payCategoryId), 1L));
+                            }
                         }
                         return list;
                     }
