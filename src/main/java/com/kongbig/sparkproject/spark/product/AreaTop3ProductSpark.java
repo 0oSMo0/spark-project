@@ -92,7 +92,7 @@ public class AreaTop3ProductSpark {
         // 使用开窗函数获取各个区域内点击次数排名前3的热门商品
         JavaRDD<Row> areaTop3ProductRDD = getAreaTop3ProductRDD(sqlContext);
 
-        /**
+        /*
          * 写入MySQL
          * 总共不到10个区域，每个区域还是top3热门商品，总共最后数据量也就是几十个
          * 所以可以直接将数据collect()到本地，用批量插入的方式，一次性插入mysql即可。
@@ -158,7 +158,7 @@ public class AreaTop3ProductSpark {
             user = ConfigurationManager.getProperty(Constants.JDBC_USER);
             password = ConfigurationManager.getProperty(Constants.JDBC_PASSWORD);
         } else {
-            url = ConfigurationManager.getProperty(Constants.JDBC_USER_PROD);
+            url = ConfigurationManager.getProperty(Constants.JDBC_URL_PROD);
             user = ConfigurationManager.getProperty(Constants.JDBC_USER_PROD);
             password = ConfigurationManager.getProperty(Constants.JDBC_PASSWORD_PROD);
         }
@@ -320,7 +320,7 @@ public class AreaTop3ProductSpark {
      * @return
      */
     private static JavaRDD<Row> getAreaTop3ProductRDD(SQLContext sqlContext) {
-        /**
+        /*
          * 使用开窗函数先进行一个子查询
          * 按照area进行分组，给每个分组内的数据，按照点击次数降序排序，打上一个组内的行号
          * 接着在外层查询中，过滤出各个组内的行号排名前3的数据
@@ -345,7 +345,7 @@ public class AreaTop3ProductSpark {
                 + "FROM ("
                 + "SELECT area, product_id, click_count, city_infos, product_name, product_status,"
                 // 按area分区，按点击次数排序。
-                + "roe_number() OVER (PARTITION BY area ORDER BY click_count DESC) rank "
+                + "row_number() OVER (PARTITION BY area ORDER BY click_count DESC) rank "
                 + "FROM tmp_area_fullprod_click_count "
                 + ") t "
                 // 取每个分组的top3
