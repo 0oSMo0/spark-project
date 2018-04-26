@@ -14,17 +14,17 @@ import java.util.*;
 public class MockRealTimeData extends Thread {
 
     private static final Random random = new Random();
-    private static final String[] provinces = new String[]{"Jiangsu", "Hubei", "Hunan", "Henan", "Hebei"};
+    private static final String[] provinces = new String[]{"江苏", "湖北", "湖南", "河南", "河北"};
     private static final Map<String, String[]> provinceCityMap = new HashMap<String, String[]>();
 
     private Producer<Integer, String> producer;
 
     public MockRealTimeData() {
-        provinceCityMap.put("Jiangsu", new String[]{"Nanjing", "Suzhou"});
-        provinceCityMap.put("Hubei", new String[]{"Wuhan", "Jingzhou"});
-        provinceCityMap.put("Hunan", new String[]{"Changsha", "Xiangtan"});
-        provinceCityMap.put("Henan", new String[]{"Zhengzhou", "Luoyang"});
-        provinceCityMap.put("Hebei", new String[]{"Shijiazhuang", "Tangshan"});
+        provinceCityMap.put("江苏", new String[]{"南京", "苏州"});
+        provinceCityMap.put("湖北", new String[]{"武汉", "荆州"});
+        provinceCityMap.put("湖南", new String[]{"长沙", "湘潭"});
+        provinceCityMap.put("河南", new String[]{"郑州", "洛阳"});
+        provinceCityMap.put("河北", new String[]{"石家庄", "唐山"});
 
         producer = new Producer<Integer, String>(createProducerConfig());
     }
@@ -32,7 +32,7 @@ public class MockRealTimeData extends Thread {
     private ProducerConfig createProducerConfig() {
         Properties props = new Properties();
         props.put("serializer.class", "kafka.serializer.StringEncoder");
-        props.put("metadata.broker.list", "192.168.1.105:9092,192.168.1.106:9092,192.168.1.107:9092");
+        props.put("metadata.broker.list", "192.168.33.71:9092,192.168.33.72:9092,192.168.33.73:9092");
         return new ProducerConfig(props);
     }
 
@@ -54,7 +54,7 @@ public class MockRealTimeData extends Thread {
     }
 
     /**
-     * 启动Kafka Producer
+     * 启动Kafka Producer（相当于kafka的客户端）
      *
      * @param args
      */

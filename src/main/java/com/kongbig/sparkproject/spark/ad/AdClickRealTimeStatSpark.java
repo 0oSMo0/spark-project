@@ -62,7 +62,7 @@ public class AdClickRealTimeStatSpark {
          * 每隔5秒钟，Spark Streaming作业就会收集最近5秒钟内的数据源接收过来的数据
          */
         JavaStreamingContext jssc = new JavaStreamingContext(conf, Durations.seconds(5));
-        jssc.checkpoint("hdfs://192.168.33.71:9090/streaming_checkpoint");
+        jssc.checkpoint("hdfs://192.168.33.71:9000/streaming_checkpoint");
 
         // 正式开始进行代码的编写，实现需求中的实时计算的业务逻辑和功能
 
@@ -133,7 +133,7 @@ public class AdClickRealTimeStatSpark {
      * --supervise
      */
     public static void testDriverHA() {
-        final String checkpointDir = "hdfs://192.168.33.71:9090/streaming_checkpoint";
+        final String checkpointDir = "hdfs://192.168.33.71:9000/streaming_checkpoint";
 
         JavaStreamingContextFactory contextFactory = new JavaStreamingContextFactory() {
             @Override
@@ -361,7 +361,7 @@ public class AdClickRealTimeStatSpark {
                             String date = DateUtils.formatDate(DateUtils.parseDateKey(keySplited[0]));
                             long userId = Long.valueOf(keySplited[1]);
                             long adId = Long.valueOf(keySplited[2]);
-                            long clickCount = Long.valueOf(keySplited[3]);
+                            long clickCount = tuple._2;
 
                             AdUserClickCount adUserClickCount = new AdUserClickCount(date, userId, adId, clickCount);
 
@@ -549,12 +549,15 @@ public class AdClickRealTimeStatSpark {
                         String log = tuple._2;
                         String[] logSplited = log.split(" ");
 
-                        String date = logSplited[0];
+                        String timestamp = logSplited[0];
+                        Date date = new Date(Long.valueOf(timestamp));
+                        String dateKey = DateUtils.formatDateKey(date);    // yyyyMMdd
+
                         String province = logSplited[1];
                         String city = logSplited[2];
                         String adId = logSplited[4];
 
-                        String key = date + "_" + province + "_" + city + "_" + adId;
+                        String key = dateKey + "_" + province + "_" + city + "_" + adId;
 
                         return new Tuple2<String, Long>(key, 1L);
                     }
@@ -571,13 +574,13 @@ public class AdClickRealTimeStatSpark {
 
                     @Override
                     public Optional<Long> call(List<Long> values, Optional<Long> optional) throws Exception {
-                /*
-                 * 举例来说
-                 * 对于每个key，都会调用一次这个方法
-                 * 比如key是<20180420_Jiangsu_Nanjing_10001, 1>，就会来调用一次这个方法
-                 * 10个
-                 * values，(1,1,1,1,1,1,1,1,1,1)
-                 */
+                        /*
+                         * 举例来说
+                         * 对于每个key，都会调用一次这个方法
+                         * 比如key是<20180420_Jiangsu_Nanjing_10001, 1>，就会来调用一次这个方法
+                         * 10个
+                         * values，(1,1,1,1,1,1,1,1,1,1)
+                         */
                         // 首先根据optional判断，之前这个key，是否有对应的状态
                         long clickCount = 0L;
 
@@ -620,6 +623,7 @@ public class AdClickRealTimeStatSpark {
                             long clickCount = tuple._2;
 
                             AdStat adStat = new AdStat(date, province, city, adId, clickCount);
+                            adStats.add(adStat);
                         }
 
                         IAdStatDAO adStatDAO = DAOFactory.getAdStatDAO();
@@ -751,10 +755,10 @@ public class AdClickRealTimeStatSpark {
 
                         while (iterator.hasNext()) {
                             Row row = iterator.next();
-                            String date = row.getString(1);
-                            String province = row.getString(2);
-                            long adId = row.getLong(3);
-                            long clickCount = row.getLong(4);
+                            String date = row.getString(0);
+                            String province = row.getString(1);
+                            long adId = row.getLong(2);
+                            long clickCount = row.getLong(3);
 
                             AdProvinceTop3 adProvinceTop3 = new AdProvinceTop3(date, province, adId, clickCount);
                             adProvinceTop3s.add(adProvinceTop3);
@@ -785,7 +789,7 @@ public class AdClickRealTimeStatSpark {
                     @Override
                     public Tuple2<String, Long> call(Tuple2<String, String> tuple) throws Exception {
                         // timeStamp province city userId adId
-                        String[] logSplited = tuple._2.split("_");
+                        String[] logSplited = tuple._2.split(" ");
                         String timeMinute = DateUtils.formatTimeMinute(
                                 new Date(Long.valueOf(logSplited[0])));
                         long adId = Long.valueOf(logSplited[4]);
