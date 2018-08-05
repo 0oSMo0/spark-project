@@ -65,6 +65,7 @@ public class MockData {
                         searchKeyword = searchKeywords[random.nextInt(10)];
                     } else if ("click".equals(action)) {
                         if (clickCategoryId == null) {
+                            // 随机性太大，点击了品类id为1的5次，下单的却可能是20次，支付的可以是50次
                             clickCategoryId = Long.valueOf(String.valueOf(random.nextInt(100)));
                         }
                         clickProductId = Long.valueOf(String.valueOf(random.nextInt(100)));
@@ -121,7 +122,7 @@ public class MockData {
             System.out.println(_row);
         }
 
-        /**
+        /*
          * ==================================================================
          */
 
@@ -164,7 +165,7 @@ public class MockData {
 
         df2.registerTempTable("user_info");
 
-        /**
+        /*
          * ==================================================================
          */
         rows.clear();

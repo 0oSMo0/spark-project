@@ -238,7 +238,7 @@ public class AreaTop3ProductSpark {
      * @param sqlContext SQLContext
      */
     private static void generateTempAreaProductClickCountTable(SQLContext sqlContext) {
-        /**
+        /*
          * 按照area和product_id两个字段进行分组
          * 计算出各区域各商品的点击次数
          * 可以获取到每个area下的每个product_id的城市信息拼接起来的串

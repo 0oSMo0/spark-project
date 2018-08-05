@@ -1,0 +1,61 @@
+﻿<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+    <![endif]-->
+    <link rel="stylesheet" type="text/css" href="hui/css/H-ui.min.css"/>
+    <link rel="stylesheet" type="text/css" href="hui/css/H-ui.admin.css"/>
+    <link rel="stylesheet" type="text/css" href="hui/lib/Hui-iconfont/1.0.8/iconfont.css"/>
+    <link rel="stylesheet" type="text/css" href="hui/skin/default/skin.css" id="skin"/>
+    <!--[if IE 6]>
+    <script type="text/javascript" src="hui/lib/DD_belatedPNG_0.0.8a-min.js"></script>
+    <script>DD_belatedPNG.fix('*');</script>
+    <![endif]-->
+    <title>Spark作业数据的简单显示</title>
+</head>
+<body style="font-weight:bold">
+<nav class="breadcrumb">
+    <i class="Hui-iconfont">&#xe67f;</i> 首页 
+</nav>
+<div class="page-container">
+    <div class="cl pd-5 bg-1 bk-gray">
+        <span class="l">
+            <a href="javascript:void(0)" onclick="loadSessionAggrStat()" class="btn btn-primary radius">session聚合统计</a>
+            <a href="querySessionDetail" target="_blank" class="btn btn-secondary radius">session详情</a>
+            <a href="javascript:void(0)" onclick="loadTop10Category()" class="btn btn-danger radius">top10热门品类</a>
+            <a href="javascript:void(0)" onclick="loadTop10Session()" class="btn btn-success radius">top10session</a>
+            <a href="javascript:void(0)" onclick="loadPageOneStepConvertRate()" class="btn btn-warning radius">页面单跳转化率</a>
+            <a href="javascript:void(0)" onclick="loadAreaTop3Product()" class="btn btn-primary radius">各区域top3热门商品统计</a>
+        </span> 
+        <span class="l mt-5">
+            <a href="javascript:void(0)" onclick="loadAdStat()" class="btn btn-secondary radius">每天各省各市各广告的点击次数</a>
+            <a href="javascript:void(0)" onclick="loadAdProvinceTop3()" class="btn btn-danger radius">每天各省份的top3热门广告</a>
+            <a href="javascript:void(0)" onclick="loadAdClickTrend()" class="btn btn-success radius">最近1小时滑动窗口的广告点击趋势</a>
+        </span>
+    <div class="mt-20">
+        <table class="table table-border table-bordered table-hover table-bg table-sort">
+            <thead id="tHead">
+                
+            </thead>
+            <tbody id="tBody">
+                
+            </tbody>
+        </table>
+    </div>
+</div>
+<!--_footer 作为公共模版分离出去-->
+<script type="text/javascript" src="hui/lib/jquery/1.9.1/jquery.min.js"></script>
+<script type="text/javascript" src="hui/lib/layer/2.4/layer.js"></script>
+<script type="text/javascript" src="hui/js/H-ui.min.js"></script>
+<script type="text/javascript" src="hui/js/H-ui.admin.js"></script>
+<!--/_footer 作为公共模版分离出去-->
+
+<!--请在下方写此页面业务相关的脚本-->
+<script type="text/javascript" src="hui/lib/datatables/1.10.0/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="hui/lib/laypage/1.2/laypage.js"></script>
+<script type="text/javascript" src="custom-js/my.js"></script>
+</body>
+</html>
